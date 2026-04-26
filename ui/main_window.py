@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent
 from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtWidgets import QMenuBar
 
 from models.audio_document import AudioDocument
 from audio.recorder import AudioRecorder
@@ -56,19 +57,35 @@ class MainWindow(QMainWindow):
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
 
-        # Custom title bar
+        # Combined title bar (menu + title + window controls)
         self._title_bar = QWidget()
         self._title_bar.setFixedHeight(32)
         self._title_bar.setStyleSheet("background: #08111a; border-bottom: 1px solid #1a3050;")
         tb_layout = QHBoxLayout(self._title_bar)
-        tb_layout.setContentsMargins(12, 0, 4, 0)
+        tb_layout.setContentsMargins(0, 0, 4, 0)
         tb_layout.setSpacing(0)
+
+        # Embedded menu bar (left side)
+        self._menu_bar = QMenuBar(self._title_bar)
+        self._menu_bar.setFixedHeight(32)
+        self._menu_bar.setStyleSheet(
+            "QMenuBar { background: transparent; color: #8899aa; font-size: 13px; padding: 0; border: none; }"
+            "QMenuBar::item { padding: 6px 10px; }"
+            "QMenuBar::item:selected { color: #fff; background: #162a3e; }"
+            "QMenu { background: #0f2030; color: #bec8d2; border: 1px solid #1a3050; }"
+            "QMenu::item { padding: 5px 24px; }"
+            "QMenu::item:selected { background: #1a3a55; }"
+            "QMenu::separator { height: 1px; background: #1a3050; margin: 4px 8px; }"
+        )
+        tb_layout.addWidget(self._menu_bar)
+
+        tb_layout.addStretch()
 
         self._title_label = QLabel("Recorder")
         self._title_label.setStyleSheet("color: #8899aa; font-size: 13px;")
         self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        tb_layout.addStretch()
         tb_layout.addWidget(self._title_label)
+
         tb_layout.addStretch()
 
         win_btn_style = (
@@ -100,7 +117,7 @@ class MainWindow(QMainWindow):
         btn_close.clicked.connect(self.close)
         tb_layout.addWidget(btn_close)
 
-        # Install event filter for title bar dragging
+        # Install event filter on title bar and all children for dragging
         self._title_bar.installEventFilter(self)
         self._title_label.installEventFilter(self)
 
@@ -164,16 +181,9 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(splitter)
 
     def _build_menus(self):
-        menu = self.menuBar()
-        menu.setStyleSheet(
-            "QMenuBar { background: #0a1520; color: #8899aa; font-size: 13px; padding: 2px 0; }"
-            "QMenuBar::item { padding: 4px 10px; }"
-            "QMenuBar::item:selected { color: #fff; background: #162a3e; }"
-            "QMenu { background: #0f2030; color: #bec8d2; border: 1px solid #1a3050; }"
-            "QMenu::item { padding: 5px 24px; }"
-            "QMenu::item:selected { background: #1a3a55; }"
-            "QMenu::separator { height: 1px; background: #1a3050; margin: 4px 8px; }"
-        )
+        # Hide the default QMainWindow menu bar
+        self.menuBar().setVisible(False)
+        menu = self._menu_bar
         file_menu = menu.addMenu("File")
 
         self._add_action(file_menu, "New", "Ctrl+N", self._on_new)
@@ -264,14 +274,17 @@ class MainWindow(QMainWindow):
         else:
             self.showMaximized()
 
+    def _is_title_bar_widget(self, obj):
+        """Check if obj is the title bar or the title label (drag targets)."""
+        return obj is self._title_bar or obj is self._title_label
+
     def eventFilter(self, obj, event):
-        if obj in (self._title_bar, self._title_label):
+        if self._is_title_bar_widget(obj):
             if event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
                 self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
                 return True
             elif event.type() == QEvent.Type.MouseMove and self._drag_pos is not None:
                 if self.isMaximized():
-                    # Restore from maximized and reposition so cursor stays on bar
                     ratio = event.globalPosition().x() / self.width()
                     self.showNormal()
                     new_x = event.globalPosition().toPoint().x() - int(self.width() * ratio)
