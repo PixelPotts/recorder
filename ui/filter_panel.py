@@ -42,9 +42,9 @@ SLIDER_STYLE = """
     }
     QSlider::handle:horizontal {
         background: #6a9fd8;
-        width: 12px;
-        margin: -4px 0;
-        border-radius: 6px;
+        width: 24px;
+        margin: -8px 0;
+        border-radius: 12px;
     }
     QSlider::sub-page:horizontal {
         background: #4a7aaa;
@@ -60,9 +60,9 @@ MASTER_SLIDER_STYLE = """
     }
     QSlider::handle:horizontal {
         background: #e8a040;
-        width: 14px;
-        margin: -4px 0;
-        border-radius: 7px;
+        width: 28px;
+        margin: -8px 0;
+        border-radius: 14px;
     }
     QSlider::sub-page:horizontal {
         background: #c07820;
