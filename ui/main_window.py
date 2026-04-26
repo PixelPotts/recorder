@@ -47,6 +47,13 @@ class MainWindow(QMainWindow):
         self._build_menus()
         self._connect_signals()
         self._start_cursor_timer()
+        self._center_on_screen()
+
+    def _center_on_screen(self):
+        screen = self.screen().availableGeometry()
+        x = (screen.width() - self.width()) // 2 + screen.x()
+        y = (screen.height() - self.height()) // 2 + screen.y()
+        self.move(x, y)
 
     # ── UI Construction ──────────────────────────────────────────────
 
