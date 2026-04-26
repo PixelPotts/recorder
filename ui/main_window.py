@@ -55,9 +55,13 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setStyleSheet(
+            "QSplitter::handle { background: #1a3050; width: 1px; }"
+        )
 
         # Left panel: file browser (top) + filter panel (bottom)
         left = QWidget()
+        left.setStyleSheet("background: #0d1b2a;")
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(0)
