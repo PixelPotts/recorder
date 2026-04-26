@@ -32,16 +32,28 @@ DOTS_BTN_STYLE = """
     QPushButton:hover { color: #bec8d2; }
 """
 
+POWER_BTN_STYLE = """
+    QPushButton {
+        background: transparent;
+        color: #00d4ff;
+        border: 1px solid #1a3855;
+        border-radius: 10px;
+        font-size: 11px;
+        padding: 0;
+    }
+    QPushButton:hover { border-color: #00d4ff; }
+"""
+
 APPLY_STYLE = """
     QPushButton {
         background: #0a3a3a;
-        color: #4aecd4;
+        color: #4ae8ff;
         border: 1px solid #1a5050;
         border-radius: 4px;
         padding: 3px 12px;
         font-size: 11px;
     }
-    QPushButton:hover { background: #0f4a4a; border-color: #4aecd4; }
+    QPushButton:hover { background: #0f4a4a; border-color: #4ae8ff; }
     QPushButton:pressed { background: #084040; }
 """
 
@@ -52,13 +64,13 @@ SLIDER_STYLE = """
         border-radius: 2px;
     }
     QSlider::handle:horizontal {
-        background: #00c8a0;
+        background: #00bce8;
         width: 14px;
         margin: -5px 0;
         border-radius: 7px;
     }
     QSlider::sub-page:horizontal {
-        background: #00a088;
+        background: #00a0d0;
         border-radius: 2px;
     }
 """
@@ -70,13 +82,13 @@ MASTER_SLIDER_STYLE = """
         border-radius: 2px;
     }
     QSlider::handle:horizontal {
-        background: #00d4aa;
+        background: #00d4ff;
         width: 16px;
         margin: -6px 0;
         border-radius: 8px;
     }
     QSlider::sub-page:horizontal {
-        background: #00b090;
+        background: #00bce8;
         border-radius: 2px;
     }
 """
@@ -92,7 +104,7 @@ CARD_STYLE = """
 
 
 class ParamSlider(QWidget):
-    """Single parameter: label + slider + value readout."""
+    """Single parameter: label + slider + value readout + tick labels."""
 
     def __init__(self, label, min_val, max_val, default, step, parent=None):
         super().__init__(parent)
@@ -100,8 +112,12 @@ class ParamSlider(QWidget):
         self.max_val = max_val
         self.step = step
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 2, 8, 2)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(10, 2, 8, 0)
+        outer.setSpacing(0)
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
 
         self._label = QLabel(label)
@@ -122,6 +138,29 @@ class ParamSlider(QWidget):
         self._readout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self._readout.setStyleSheet("color: #8899aa; font-size: 11px;")
         layout.addWidget(self._readout)
+
+        outer.addLayout(layout)
+
+        # Tick labels row
+        tick_style = "color: #4a5a6a; font-size: 9px;"
+        tick_row = QHBoxLayout()
+        tick_row.setContentsMargins(55, 0, 45, 0)
+        tick_row.setSpacing(0)
+        min_lbl = QLabel(self._fmt(min_val))
+        min_lbl.setStyleSheet(tick_style)
+        tick_row.addWidget(min_lbl)
+        tick_row.addStretch()
+        mid_val = (min_val + max_val) / 2
+        mid_lbl = QLabel(self._fmt(mid_val))
+        mid_lbl.setStyleSheet(tick_style)
+        mid_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        tick_row.addWidget(mid_lbl)
+        tick_row.addStretch()
+        max_lbl = QLabel(self._fmt(max_val))
+        max_lbl.setStyleSheet(tick_style)
+        max_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+        tick_row.addWidget(max_lbl)
+        outer.addLayout(tick_row)
 
     @property
     def value(self):
@@ -161,6 +200,12 @@ class CollapsibleFilter(QWidget):
         header_row = QHBoxLayout()
         header_row.setContentsMargins(0, 0, 0, 0)
         header_row.setSpacing(0)
+
+        self._power_btn = QPushButton("\u23fb")
+        self._power_btn.setFixedSize(20, 20)
+        self._power_btn.setStyleSheet(POWER_BTN_STYLE)
+        self._power_btn.setToolTip("Toggle filter")
+        header_row.addWidget(self._power_btn)
 
         self._header = QPushButton(f"\u2304  {label}")
         self._header.setStyleSheet(FILTER_HEADER_STYLE)
@@ -271,13 +316,19 @@ class FilterPanel(QWidget):
         sep.setStyleSheet("color: #1a3050;")
         outer.addWidget(sep)
 
-        # Filter header
-        filt_label = QLabel("  FILTERS")
+        # Filter header with chevron
+        filt_header_row = QHBoxLayout()
+        filt_header_row.setContentsMargins(8, 6, 8, 2)
+        filt_label = QLabel("FILTERS")
         filt_label.setStyleSheet(
-            "color: #8899aa; font-size: 11px; font-weight: bold; "
-            "letter-spacing: 1px; padding: 6px 0 2px 0;"
+            "color: #8899aa; font-size: 11px; font-weight: bold; letter-spacing: 1px;"
         )
-        outer.addWidget(filt_label)
+        filt_header_row.addWidget(filt_label)
+        filt_header_row.addStretch()
+        filt_chevron = QLabel("\u2303")
+        filt_chevron.setStyleSheet("color: #556677; font-size: 13px;")
+        filt_header_row.addWidget(filt_chevron)
+        outer.addLayout(filt_header_row)
 
         # Scrollable filter list (starts empty)
         scroll = QScrollArea()

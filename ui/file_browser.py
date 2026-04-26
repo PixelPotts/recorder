@@ -1,6 +1,7 @@
 """File browser listing WAV files from the wavs/ directory."""
 
 import os
+import wave
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QLabel,
     QPushButton, QListWidgetItem,
@@ -15,7 +16,7 @@ def _make_wave_icon(size: int = 18) -> QIcon:
     pix.fill(QColor(0, 0, 0, 0))
     p = QPainter(pix)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
-    pen = QPen(QColor(0, 200, 160))
+    pen = QPen(QColor(0, 212, 255))
     pen.setWidth(2)
     p.setPen(pen)
     mid = size // 2
@@ -48,24 +49,27 @@ ADD_BTN_STYLE = """
         font-weight: bold;
         padding: 0;
     }
-    QPushButton:hover { color: #00d4aa; border-color: #00d4aa; }
+    QPushButton:hover { color: #00d4ff; border-color: #00d4ff; }
 """
 
 LIST_STYLE = """
     QListWidget {
         background: #0a1520;
         color: #bec8d2;
-        border: none;
+        border: 1px solid #1a3050;
+        border-radius: 4px;
         font-size: 13px;
         outline: none;
     }
     QListWidget::item {
-        padding: 4px 6px;
+        padding: 5px 6px 5px 8px;
         border: none;
+        border-left: 2px solid transparent;
     }
     QListWidget::item:selected {
         background: #0f3d3a;
-        color: #4aecd4;
+        color: #4ae8ff;
+        border-left: 2px solid #00d4ff;
     }
     QListWidget::item:hover:!selected {
         background: #112233;
@@ -114,6 +118,17 @@ class FileBrowser(QWidget):
         self._list.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self._list)
 
+    def _get_wav_info(self, path: str) -> str:
+        """Read WAV metadata for display."""
+        try:
+            with wave.open(path, 'rb') as wf:
+                bits = wf.getsampwidth() * 8
+                rate = wf.getframerate()
+                rate_str = f"{rate / 1000:.1f} kHz" if rate % 1000 else f"{rate // 1000} kHz"
+                return f"WAV \u00b7 {bits}-bit \u00b7 {rate_str}"
+        except Exception:
+            return "WAV"
+
     def refresh(self):
         self._list.clear()
         if not os.path.isdir(self.wavs_dir):
@@ -123,10 +138,16 @@ class FileBrowser(QWidget):
             if f.lower().endswith(".wav")
         )
         for f in files:
-            item = QListWidgetItem(self._wave_icon, f)
+            full_path = os.path.join(self.wavs_dir, f)
+            meta = self._get_wav_info(full_path)
+            item = QListWidgetItem(self._wave_icon, f"{f}\n{meta}")
+            item.setData(Qt.ItemDataRole.UserRole, f)
+            item.setSizeHint(QSize(0, 36))
             self._list.addItem(item)
 
     def _on_item_clicked(self, item):
-        name = item.text()
+        name = item.data(Qt.ItemDataRole.UserRole)
+        if name is None:
+            name = item.text().split("\n")[0]
         full_path = os.path.join(self.wavs_dir, name)
         self.file_selected.emit(full_path)

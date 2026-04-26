@@ -4,7 +4,7 @@ import os
 import numpy as np
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-    QFileDialog, QMessageBox, QSplitter, QPushButton, QLabel,
+    QFileDialog, QMessageBox, QSplitter, QPushButton, QLabel, QFrame,
 )
 from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent
 from PyQt6.QtGui import QAction, QKeySequence
@@ -59,7 +59,7 @@ class MainWindow(QMainWindow):
         # Custom title bar
         self._title_bar = QWidget()
         self._title_bar.setFixedHeight(32)
-        self._title_bar.setStyleSheet("background: #08111a;")
+        self._title_bar.setStyleSheet("background: #08111a; border-bottom: 1px solid #1a3050;")
         tb_layout = QHBoxLayout(self._title_bar)
         tb_layout.setContentsMargins(12, 0, 4, 0)
         tb_layout.setSpacing(0)
@@ -140,8 +140,16 @@ class MainWindow(QMainWindow):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
 
+        wave_frame = QFrame()
+        wave_frame.setStyleSheet(
+            "QFrame { border: 1px solid #1a3050; border-radius: 4px; margin: 2px 3px; }"
+        )
+        wave_frame_layout = QVBoxLayout(wave_frame)
+        wave_frame_layout.setContentsMargins(0, 0, 0, 0)
+        wave_frame_layout.setSpacing(0)
         self.waveform = WaveformWidget()
-        right_layout.addWidget(self.waveform, stretch=1)
+        wave_frame_layout.addWidget(self.waveform)
+        right_layout.addWidget(wave_frame, stretch=1)
 
         self.transport = TransportControls()
         right_layout.addWidget(self.transport)

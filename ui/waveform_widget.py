@@ -3,7 +3,7 @@
 import numpy as np
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QPainter, QColor, QPen, QMouseEvent, QWheelEvent, QFont
+from PyQt6.QtGui import QPainter, QColor, QPen, QMouseEvent, QWheelEvent, QFont, QLinearGradient
 
 
 class WaveformWidget(QWidget):
@@ -15,13 +15,14 @@ class WaveformWidget(QWidget):
 
     selection_changed = pyqtSignal(int, int)  # start_sample, end_sample
 
-    # Colors — dark navy + cyan theme
+    # Colors — dark navy + blue-cyan theme
     BG_COLOR = QColor(10, 18, 28)
-    WAVE_COLOR = QColor(0, 210, 170)
-    WAVE_FILL_COLOR = QColor(0, 210, 170, 40)
-    SELECTION_COLOR = QColor(0, 180, 160, 50)
+    WAVE_COLOR = QColor(0, 212, 255)
+    WAVE_GLOW_COLOR = QColor(0, 212, 255, 40)
+    WAVE_FILL_COLOR = QColor(0, 212, 255, 40)
+    SELECTION_COLOR = QColor(0, 180, 220, 50)
     CURSOR_COLOR = QColor(255, 60, 60)
-    CENTERLINE_COLOR = QColor(20, 40, 60)
+    CENTERLINE_COLOR = QColor(0, 212, 255, 30)
     GRID_COLOR = QColor(25, 45, 65)
     GRID_TEXT_COLOR = QColor(80, 110, 140)
     GHOST_COLOR = QColor(200, 200, 100, 60)
@@ -225,7 +226,7 @@ class WaveformWidget(QWidget):
                 t += interval
 
             # End time in accent color
-            p.setPen(QPen(QColor(0, 210, 170)))
+            p.setPen(QPen(QColor(0, 212, 255)))
             end_label = f"{view_end_sec:.1f}" if view_end_sec < 60 else f"{int(view_end_sec)//60}:{view_end_sec%60:04.1f}"
             end_w = p.fontMetrics().horizontalAdvance(end_label)
             p.drawText(w - end_w - 4, tl_h - 5, end_label)
@@ -249,8 +250,38 @@ class WaveformWidget(QWidget):
 
         # Draw waveform
         if self._envelope_min is not None:
-            p.setPen(QPen(self.WAVE_COLOR, 1))
             scale = (wave_h // 2) * 0.95
+
+            # Glow layer (wider, semi-transparent bloom)
+            p.setPen(QPen(self.WAVE_GLOW_COLOR, 3))
+            for x in range(min(w, self._envelope_width)):
+                y_min = int(mid_y - self._envelope_max[x] * scale)
+                y_max = int(mid_y - self._envelope_min[x] * scale)
+                if y_min == y_max:
+                    y_max += 1
+                p.drawLine(x, y_min, x, y_max)
+
+            # Subtle gradient fill between waveform and center
+            for x in range(min(w, self._envelope_width)):
+                y_top = int(mid_y - self._envelope_max[x] * scale)
+                y_bot = int(mid_y - self._envelope_min[x] * scale)
+                if y_top < mid_y:
+                    fill_grad = QLinearGradient(x, y_top, x, mid_y)
+                    fill_grad.setColorAt(0.0, QColor(0, 212, 255, 18))
+                    fill_grad.setColorAt(1.0, QColor(0, 212, 255, 4))
+                    p.setPen(Qt.PenStyle.NoPen)
+                    p.setBrush(fill_grad)
+                    p.drawRect(x, y_top, 1, mid_y - y_top)
+                if y_bot > mid_y:
+                    fill_grad = QLinearGradient(x, mid_y, x, y_bot)
+                    fill_grad.setColorAt(0.0, QColor(0, 212, 255, 4))
+                    fill_grad.setColorAt(1.0, QColor(0, 212, 255, 18))
+                    p.setPen(Qt.PenStyle.NoPen)
+                    p.setBrush(fill_grad)
+                    p.drawRect(x, mid_y, 1, y_bot - mid_y)
+
+            # Crisp waveform layer
+            p.setPen(QPen(self.WAVE_COLOR, 1))
             for x in range(min(w, self._envelope_width)):
                 y_min = int(mid_y - self._envelope_max[x] * scale)
                 y_max = int(mid_y - self._envelope_min[x] * scale)
@@ -265,7 +296,7 @@ class WaveformWidget(QWidget):
             px_e = self._sample_to_pixel(sel_e)
             p.fillRect(px_s, tl_h, px_e - px_s, wave_h, self.SELECTION_COLOR)
             # Selection edges
-            edge_pen = QPen(QColor(0, 180, 160, 120), 1)
+            edge_pen = QPen(QColor(0, 188, 232, 120), 1)
             p.setPen(edge_pen)
             p.drawLine(px_s, tl_h, px_s, h)
             p.drawLine(px_e, tl_h, px_e, h)

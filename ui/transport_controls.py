@@ -1,6 +1,6 @@
 """Play/Record/Stop circular buttons and time display."""
 
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSlider
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPainter, QColor, QPixmap, QPainterPath, QPen
 
@@ -53,8 +53,8 @@ RECORD_ACTIVE = """
 
 PLAY_ACTIVE = """
     QPushButton {
-        background: rgba(0, 180, 160, 30);
-        border: 2px solid #00b4a0;
+        background: rgba(0, 180, 220, 30);
+        border: 2px solid #00bce8;
         border-radius: 22px;
         padding: 0;
     }
@@ -67,7 +67,7 @@ class TransportControls(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(56)
-        self.setStyleSheet("background: #0d1b2a;")
+        self.setStyleSheet("background: #0d1b2a; border-top: 1px solid #1a3050; border-bottom: 1px solid #1a3050;")
         self._setup_ui()
 
     def _setup_ui(self):
@@ -125,6 +125,34 @@ class TransportControls(QWidget):
         )
         self._total_time.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(self._total_time)
+
+        layout.addSpacing(16)
+
+        # Volume slider with +/- labels
+        vol_minus = QLabel("\u2212")
+        vol_minus.setStyleSheet("color: #556677; font-size: 14px; border: none;")
+        layout.addWidget(vol_minus)
+
+        self._vol_slider = QSlider(Qt.Orientation.Horizontal)
+        self._vol_slider.setRange(0, 100)
+        self._vol_slider.setValue(80)
+        self._vol_slider.setFixedWidth(120)
+        self._vol_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                background: #1a3050; height: 3px; border-radius: 1px;
+            }
+            QSlider::handle:horizontal {
+                background: #00d4ff; width: 10px; margin: -4px 0; border-radius: 5px;
+            }
+            QSlider::sub-page:horizontal {
+                background: #00bce8; border-radius: 1px;
+            }
+        """)
+        layout.addWidget(self._vol_slider)
+
+        vol_plus = QLabel("+")
+        vol_plus.setStyleSheet("color: #556677; font-size: 14px; border: none;")
+        layout.addWidget(vol_plus)
 
         # Keep old label ref for compat
         self.time_label = self._current_time

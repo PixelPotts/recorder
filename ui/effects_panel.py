@@ -3,7 +3,7 @@
 import math
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QPointF
-from PyQt6.QtGui import QPainter, QColor, QPen, QConicalGradient, QMouseEvent
+from PyQt6.QtGui import QPainter, QColor, QPen, QConicalGradient, QRadialGradient, QMouseEvent
 
 
 class KnobWidget(QWidget):
@@ -41,40 +41,70 @@ class KnobWidget(QWidget):
         cx, cy = w / 2, h / 2
         radius = min(w, h) / 2 - 3
 
-        # Outer ring (dark)
+        # Drop shadow behind knob
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(0, 0, 0, 60))
+        p.drawEllipse(QRectF(cx - radius + 1, cy - radius + 2, radius * 2, radius * 2))
+
+        # Outer bezel ring
         p.setPen(QPen(QColor(30, 50, 70), 2))
-        p.setBrush(QColor(15, 25, 38))
+        p.setBrush(QColor(12, 20, 32))
         p.drawEllipse(QRectF(cx - radius, cy - radius, radius * 2, radius * 2))
 
-        # Inner knob body
+        # Inner knob body — 3D radial gradient (domed look)
         inner_r = radius - 5
+        knob_grad = QRadialGradient(cx - inner_r * 0.3, cy - inner_r * 0.3, inner_r * 1.4)
+        knob_grad.setColorAt(0.0, QColor(42, 74, 101))   # lighter center-top-left
+        knob_grad.setColorAt(0.7, QColor(20, 35, 50))
+        knob_grad.setColorAt(1.0, QColor(15, 28, 42))     # dark edges
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(25, 40, 55))
+        p.setBrush(knob_grad)
         p.drawEllipse(QRectF(cx - inner_r, cy - inner_r, inner_r * 2, inner_r * 2))
 
-        # Value arc (cyan glow)
+        # Gloss highlight (small bright spot top-left)
+        gloss_r = inner_r * 0.45
+        gloss_grad = QRadialGradient(cx - inner_r * 0.25, cy - inner_r * 0.3, gloss_r)
+        gloss_grad.setColorAt(0.0, QColor(255, 255, 255, 38))
+        gloss_grad.setColorAt(1.0, QColor(255, 255, 255, 0))
+        p.setBrush(gloss_grad)
+        p.drawEllipse(QRectF(cx - inner_r, cy - inner_r, inner_r * 2, inner_r * 2))
+
+        # Value arc — glow layer (wider, semi-transparent)
         arc_rect = QRectF(cx - radius + 1, cy - radius + 1,
                           (radius - 1) * 2, (radius - 1) * 2)
         value_span = self._value * self.ARC_SPAN
-        arc_pen = QPen(QColor(0, 210, 180), 3)
-        arc_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        p.setPen(arc_pen)
-        # Qt arcs: start angle in 1/16 degree, positive = counter-clockwise
         start_16 = int(self.ARC_START * 16)
         span_16 = int(-value_span * 16)
+
+        glow_pen = QPen(QColor(0, 212, 255, 50), 6)
+        glow_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.setPen(glow_pen)
+        p.drawArc(arc_rect, start_16, span_16)
+
+        # Value arc — crisp layer
+        arc_pen = QPen(QColor(0, 212, 255), 3)
+        arc_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.setPen(arc_pen)
         p.drawArc(arc_rect, start_16, span_16)
 
         # Indicator line
         angle_deg = self.ARC_START - self._value * self.ARC_SPAN
         angle_rad = math.radians(angle_deg)
         line_inner = inner_r * 0.35
-        line_outer = inner_r * 0.75
+        line_outer = inner_r * 0.78
         x1 = cx + line_inner * math.cos(angle_rad)
         y1 = cy - line_inner * math.sin(angle_rad)
         x2 = cx + line_outer * math.cos(angle_rad)
         y2 = cy - line_outer * math.sin(angle_rad)
-        p.setPen(QPen(QColor(200, 220, 240), 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        p.setPen(QPen(QColor(220, 235, 255), 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         p.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+        # Bright dot at indicator tip
+        dot_x = cx + (inner_r * 0.82) * math.cos(angle_rad)
+        dot_y = cy - (inner_r * 0.82) * math.sin(angle_rad)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(0, 212, 255, 180))
+        p.drawEllipse(QPointF(dot_x, dot_y), 2.0, 2.0)
 
         p.end()
 
@@ -183,7 +213,7 @@ class EffectsPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(105)
-        self.setStyleSheet("background: #0a1520; border-top: 1px solid #1a3050;")
+        self.setStyleSheet("background: #0c1825; border-top: 1px solid #1a3855;")
         self._knobs: dict[str, EffectKnob] = {}
         self._setup_ui()
 
