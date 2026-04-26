@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Audio Recorder/Editor — entry point."""
 
+import signal
 import sys
 import os
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
