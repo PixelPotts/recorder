@@ -17,11 +17,12 @@ class AudioRecorder(QObject):
     recording_stopped = pyqtSignal()
 
     def __init__(self, sample_rate: int = 44100, channels: int = 1,
-                 block_size: int = 1024, parent=None):
+                 block_size: int = 1024, input_gain: float = 3.0, parent=None):
         super().__init__(parent)
         self.sample_rate = sample_rate
         self.channels = channels
         self.block_size = block_size
+        self.input_gain = input_gain
         self._stream: sd.InputStream | None = None
         self._is_recording = False
 
@@ -57,4 +58,7 @@ class AudioRecorder(QObject):
         if not self._is_recording:
             return
         chunk = indata[:, 0].copy()
+        if self.input_gain != 1.0:
+            chunk *= self.input_gain
+            np.clip(chunk, -1.0, 1.0, out=chunk)
         self.samples_ready.emit(chunk)

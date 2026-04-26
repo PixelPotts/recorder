@@ -53,10 +53,19 @@ class WaveformWidget(QWidget):
         self._envelope_width: int = 0
         self._envelope_view: tuple[int, int] = (0, 0)
 
-    def set_samples(self, samples: np.ndarray):
+    def set_samples(self, samples: np.ndarray, recording: bool = False):
         self._samples = samples
         self._num_samples = len(samples)
-        if self._view_end == 0 or self._view_end > self._num_samples:
+        if recording and self._num_samples > 0:
+            # Show a rolling window of ~4 seconds during recording
+            window = 44100 * 4
+            if self._num_samples > window:
+                self._view_start = self._num_samples - window
+                self._view_end = self._num_samples
+            else:
+                self._view_start = 0
+                self._view_end = self._num_samples
+        elif self._view_end == 0 or self._view_end > self._num_samples:
             self._view_start = 0
             self._view_end = self._num_samples
         self._invalidate_envelope()

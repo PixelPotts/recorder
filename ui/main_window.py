@@ -180,7 +180,7 @@ class MainWindow(QMainWindow):
 
     def _on_samples_recorded(self, chunk):
         self.doc.append_samples(chunk)
-        self.waveform.set_samples(self.doc.samples)
+        self.waveform.set_samples(self.doc.samples, recording=True)
         self.transport.update_time(self.doc.duration, self.doc.duration)
 
     # ── Playback ─────────────────────────────────────────────────────
