@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Recorder")
         self.setMinimumSize(1000, 600)
-        self.setStyleSheet("background: #1a1a1a; color: #ccc;")
+        self.setStyleSheet("background: #0d1b2a; color: #bec8d2;")
 
         self.doc = AudioDocument()
         self.recorder = AudioRecorder(parent=self)
@@ -95,9 +95,15 @@ class MainWindow(QMainWindow):
 
     def _build_menus(self):
         menu = self.menuBar()
-        menu.setStyleSheet("QMenuBar { background: #222; color: #ccc; }"
-                           "QMenu { background: #2a2a2a; color: #ccc; }"
-                           "QMenu::item:selected { background: #3a3a3a; }")
+        menu.setStyleSheet(
+            "QMenuBar { background: #0a1520; color: #8899aa; font-size: 13px; padding: 2px 0; }"
+            "QMenuBar::item { padding: 4px 10px; }"
+            "QMenuBar::item:selected { color: #fff; background: #162a3e; }"
+            "QMenu { background: #0f2030; color: #bec8d2; border: 1px solid #1a3050; }"
+            "QMenu::item { padding: 5px 24px; }"
+            "QMenu::item:selected { background: #1a3a55; }"
+            "QMenu::separator { height: 1px; background: #1a3050; margin: 4px 8px; }"
+        )
         file_menu = menu.addMenu("File")
 
         self._add_action(file_menu, "New", "Ctrl+N", self._on_new)

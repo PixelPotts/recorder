@@ -23,13 +23,13 @@ def main():
     # Dark palette
     from PyQt6.QtGui import QPalette, QColor
     palette = QPalette()
-    palette.setColor(QPalette.ColorRole.Window, QColor(26, 26, 26))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor(204, 204, 204))
-    palette.setColor(QPalette.ColorRole.Base, QColor(30, 30, 30))
-    palette.setColor(QPalette.ColorRole.Text, QColor(204, 204, 204))
-    palette.setColor(QPalette.ColorRole.Button, QColor(42, 42, 42))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor(204, 204, 204))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor(38, 79, 120))
+    palette.setColor(QPalette.ColorRole.Window, QColor(13, 27, 42))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(190, 200, 210))
+    palette.setColor(QPalette.ColorRole.Base, QColor(10, 21, 32))
+    palette.setColor(QPalette.ColorRole.Text, QColor(190, 200, 210))
+    palette.setColor(QPalette.ColorRole.Button, QColor(18, 35, 53))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor(190, 200, 210))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor(0, 180, 160))
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
     app.setPalette(palette)
 
