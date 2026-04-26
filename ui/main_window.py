@@ -4,9 +4,9 @@ import os
 import numpy as np
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-    QFileDialog, QMessageBox, QSplitter,
+    QFileDialog, QMessageBox, QSplitter, QPushButton, QLabel,
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QPoint
 from PyQt6.QtGui import QAction, QKeySequence
 
 from models.audio_document import AudioDocument
@@ -26,9 +26,11 @@ WAVS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setWindowTitle("Recorder")
         self.setMinimumSize(1000, 600)
         self.setStyleSheet("background: #0d1b2a; color: #bec8d2;")
+        self._drag_pos = None
 
         self.doc = AudioDocument()
         self.recorder = AudioRecorder(parent=self)
@@ -50,9 +52,61 @@ class MainWindow(QMainWindow):
     def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
-        main_layout = QHBoxLayout(central)
+        outer_layout = QVBoxLayout(central)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        # Custom title bar
+        self._title_bar = QWidget()
+        self._title_bar.setFixedHeight(32)
+        self._title_bar.setStyleSheet("background: #08111a;")
+        tb_layout = QHBoxLayout(self._title_bar)
+        tb_layout.setContentsMargins(12, 0, 4, 0)
+        tb_layout.setSpacing(0)
+
+        self._title_label = QLabel("Recorder")
+        self._title_label.setStyleSheet("color: #8899aa; font-size: 13px;")
+        self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        tb_layout.addStretch()
+        tb_layout.addWidget(self._title_label)
+        tb_layout.addStretch()
+
+        win_btn_style = (
+            "QPushButton { background: transparent; color: #556677; border: none; "
+            "font-size: 16px; padding: 4px 12px; }"
+            "QPushButton:hover { color: #bec8d2; background: #1a2a3a; }"
+        )
+        close_btn_style = (
+            "QPushButton { background: transparent; color: #556677; border: none; "
+            "font-size: 16px; padding: 4px 12px; }"
+            "QPushButton:hover { color: #fff; background: #cc3333; }"
+        )
+
+        btn_min = QPushButton("\u2013")
+        btn_min.setFixedSize(40, 32)
+        btn_min.setStyleSheet(win_btn_style)
+        btn_min.clicked.connect(self.showMinimized)
+        tb_layout.addWidget(btn_min)
+
+        btn_max = QPushButton("\u25a1")
+        btn_max.setFixedSize(40, 32)
+        btn_max.setStyleSheet(win_btn_style)
+        btn_max.clicked.connect(self._toggle_maximize)
+        tb_layout.addWidget(btn_max)
+
+        btn_close = QPushButton("\u2715")
+        btn_close.setFixedSize(40, 32)
+        btn_close.setStyleSheet(close_btn_style)
+        btn_close.clicked.connect(self.close)
+        tb_layout.addWidget(btn_close)
+
+        outer_layout.addWidget(self._title_bar)
+
+        # Main content area
+        main_layout = QHBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
+        outer_layout.addLayout(main_layout, stretch=1)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setStyleSheet(
@@ -184,6 +238,45 @@ class MainWindow(QMainWindow):
         self._cursor_timer.setInterval(33)  # ~30fps
         self._cursor_timer.timeout.connect(self._update_cursor)
         self._cursor_timer.start()
+
+    def setWindowTitle(self, title: str):
+        super().setWindowTitle(title)
+        if hasattr(self, '_title_label'):
+            self._title_label.setText(title)
+
+    # ── Title bar drag / maximize ────────────────────────────────────
+
+    def _toggle_maximize(self):
+        if self.isMaximized():
+            self.showNormal()
+        else:
+            self.showMaximized()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            # Only drag if clicking on the title bar area
+            if self._title_bar.geometry().contains(event.pos()):
+                self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                event.accept()
+            else:
+                super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._drag_pos is not None and event.buttons() & Qt.MouseButton.LeftButton:
+            self.move(event.globalPosition().toPoint() - self._drag_pos)
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self._drag_pos = None
+        super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if self._title_bar.geometry().contains(event.pos()):
+            self._toggle_maximize()
+        else:
+            super().mouseDoubleClickEvent(event)
 
     # ── Key Events ───────────────────────────────────────────────────
 
