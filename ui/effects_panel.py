@@ -1,6 +1,6 @@
 """Effects panel with 10 QDials and labels."""
 
-from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel, QDial, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QDial, QVBoxLayout
 from PyQt6.QtCore import Qt, pyqtSignal
 
 
@@ -31,12 +31,8 @@ class EffectKnob(QWidget):
         self._dial = QDial()
         self._dial.setRange(0, 1000)
         self._dial.setNotchesVisible(True)
-        self._dial.setFixedSize(56, 56)
-        self._dial.setStyleSheet("""
-            QDial {
-                background: #2a2a2a;
-            }
-        """)
+        self._dial.setFixedSize(40, 40)
+        self._dial.setStyleSheet("QDial { background: #2a2a2a; }")
         # Set default position
         default_pos = int((default_val - min_val) / (max_val - min_val) * 1000)
         self._dial.setValue(max(0, min(1000, default_pos)))
@@ -86,21 +82,19 @@ class EffectsPanel(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(140)
+        self.setFixedHeight(90)
         self._knobs: dict[str, EffectKnob] = {}
         self._setup_ui()
 
     def _setup_ui(self):
-        grid = QGridLayout(self)
-        grid.setContentsMargins(8, 4, 8, 4)
-        grid.setSpacing(4)
+        row = QHBoxLayout(self)
+        row.setContentsMargins(4, 2, 4, 2)
+        row.setSpacing(2)
 
-        for i, (label, key, mn, mx, default, unit, dec) in enumerate(EFFECT_DEFS):
+        for label, key, mn, mx, default, unit, dec in EFFECT_DEFS:
             knob = EffectKnob(label, key, mn, mx, default, unit, dec)
             knob.value_changed.connect(self._on_knob_changed)
-            row = i // 5
-            col = i % 5
-            grid.addWidget(knob, row, col)
+            row.addWidget(knob)
             self._knobs[key] = knob
 
     def _on_knob_changed(self, key: str, val: float):
