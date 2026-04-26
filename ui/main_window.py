@@ -1,6 +1,7 @@
 """Main application window — layout, menus, key events, signal wiring."""
 
 import os
+import numpy as np
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QFileDialog, QMessageBox, QSplitter,
@@ -15,6 +16,7 @@ from audio.undo_manager import UndoManager
 from audio.filters import FILTER_REGISTRY
 from ui.waveform_widget import WaveformWidget
 from ui.file_browser import FileBrowser
+from ui.filter_panel import FilterPanel
 from ui.effects_panel import EffectsPanel
 from ui.transport_controls import TransportControls
 
@@ -54,10 +56,22 @@ class MainWindow(QMainWindow):
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
+        # Left panel: file browser (top) + filter panel (bottom)
+        left = QWidget()
+        left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(0)
+
         self.file_browser = FileBrowser(WAVS_DIR)
-        self.file_browser.setMinimumWidth(140)
-        self.file_browser.setMaximumWidth(260)
-        splitter.addWidget(self.file_browser)
+        self.file_browser.setMaximumHeight(160)
+        left_layout.addWidget(self.file_browser)
+
+        self.filter_panel = FilterPanel()
+        left_layout.addWidget(self.filter_panel, stretch=1)
+
+        left.setMinimumWidth(200)
+        left.setMaximumWidth(300)
+        splitter.addWidget(left)
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
@@ -137,6 +151,10 @@ class MainWindow(QMainWindow):
 
         # Effects
         self.effects_panel.effect_changed.connect(self._on_effect_changed)
+
+        # Filter panel
+        self.filter_panel.filter_apply.connect(self._on_filter_panel_apply)
+        self.filter_panel.master_volume_changed.connect(self._on_master_volume)
 
         # Transport buttons
         self.transport.btn_record.clicked.connect(self._toggle_record)
@@ -355,19 +373,24 @@ class MainWindow(QMainWindow):
         self.waveform.clear_selection()
         self._refresh_waveform()
 
-    def _apply_filter(self, fn):
+    def _on_filter_panel_apply(self, fn, kwargs):
+        self._apply_filter(fn, **kwargs)
+
+    def _on_master_volume(self, vol):
+        self.doc.effect_params["gain_db"] = 20.0 * np.log10(max(vol, 0.001))
+        self.effects_panel.set_params(self.doc.effect_params)
+
+    def _apply_filter(self, fn, **kwargs):
         if self.doc.num_samples == 0:
             return
         self.undo_mgr.push(self.doc.get_snapshot())
         sel = self.waveform.get_selection()
         if sel[0] >= 0 and sel[1] > sel[0]:
-            # Apply to selection only
             segment = self.doc.samples[sel[0]:sel[1]].copy()
-            filtered = fn(segment, self.doc.sample_rate)
+            filtered = fn(segment, self.doc.sample_rate, **kwargs)
             self.doc.samples[sel[0]:sel[0] + len(filtered)] = filtered
         else:
-            # Apply to entire audio
-            self.doc.samples = fn(self.doc.samples, self.doc.sample_rate)
+            self.doc.samples = fn(self.doc.samples, self.doc.sample_rate, **kwargs)
         self.doc.dirty = True
         self._refresh_waveform()
 
