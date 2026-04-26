@@ -161,6 +161,7 @@ class MainWindow(QMainWindow):
 
         # File browser
         self.file_browser.file_selected.connect(self._load_file)
+        self.file_browser._add_btn.clicked.connect(self._on_open)
 
         # Effects
         self.effects_panel.effect_changed.connect(self._on_effect_changed)
