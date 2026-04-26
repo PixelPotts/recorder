@@ -102,6 +102,7 @@ class MainWindow(QMainWindow):
         self._add_action(edit_menu, "Delete Selection", "Delete", self._on_delete)
         self._add_action(edit_menu, "Crop to Selection", "Ctrl+Shift+X", self._on_crop)
         edit_menu.addSeparator()
+        self._add_action(edit_menu, "Select All", "Ctrl+A", self._on_select_all)
         self._add_action(edit_menu, "Zoom to Fit", "Ctrl+0", lambda: self.waveform.zoom_to_fit())
 
     def _add_action(self, menu, text, shortcut, callback):
@@ -343,6 +344,14 @@ class MainWindow(QMainWindow):
         self.doc.crop_to_selection(sel[0], sel[1])
         self.waveform.clear_selection()
         self._refresh_waveform()
+
+    def _on_select_all(self):
+        if self.doc.num_samples == 0:
+            return
+        self.waveform._sel_start = 0
+        self.waveform._sel_end = self.doc.num_samples
+        self.waveform.update()
+        self.waveform.selection_changed.emit(0, self.doc.num_samples)
 
     # ── Effects ──────────────────────────────────────────────────────
 
