@@ -13,7 +13,7 @@ from models.audio_document import AudioDocument
 from audio.recorder import AudioRecorder
 from audio.player import AudioPlayer
 from audio.undo_manager import UndoManager
-from audio.filters import FILTER_REGISTRY
+from audio.filters import FILTER_REGISTRY, FILTER_DEFS
 from ui.waveform_widget import WaveformWidget
 from ui.file_browser import FileBrowser
 from ui.filter_panel import FilterPanel
@@ -121,13 +121,20 @@ class MainWindow(QMainWindow):
         self._add_action(edit_menu, "Zoom to Fit", "Ctrl+0", lambda: self.waveform.zoom_to_fit())
 
         filter_menu = menu.addMenu("Filter")
-        for label, fn in FILTER_REGISTRY:
-            self._add_filter_action(filter_menu, label, fn)
+        for label, fn, param_defs in FILTER_DEFS:
+            self._add_filter_action(filter_menu, label, fn, param_defs)
 
-    def _add_filter_action(self, menu, label, fn):
+    def _add_filter_action(self, menu, label, fn, param_defs):
         action = QAction(label, self)
-        action.triggered.connect(lambda checked, f=fn: self._apply_filter(f))
+        action.triggered.connect(
+            lambda checked, l=label, f=fn, p=param_defs: self._on_filter_menu_select(l, f, p)
+        )
         menu.addAction(action)
+
+    def _on_filter_menu_select(self, label, fn, param_defs):
+        """Add filter to the panel and apply it."""
+        self.filter_panel.add_filter(label, fn, param_defs)
+        self._apply_filter(fn)
 
     def _add_action(self, menu, text, shortcut, callback):
         action = QAction(text, self)
@@ -176,7 +183,7 @@ class MainWindow(QMainWindow):
             self._space_held = True
             self._start_recording()
         elif event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
-            self._start_playback()
+            self._play_always()
         else:
             super().keyPressEvent(event)
 
@@ -221,6 +228,18 @@ class MainWindow(QMainWindow):
         sel = self.waveform.get_selection()
         start = sel[0] if sel[0] >= 0 else 0
         self.player.play(rendered, start)
+
+    def _play_always(self):
+        """Enter key handler — always play, from beginning if no selection."""
+        if self.doc.num_samples == 0:
+            return
+        self.recorder.stop()
+        rendered = self.doc.get_rendered()
+        sel = self.waveform.get_selection()
+        if sel[0] >= 0:
+            self.player.play(rendered, sel[0])
+        else:
+            self.player.play(rendered, 0)
 
     def _toggle_play(self):
         if self.player.is_playing:

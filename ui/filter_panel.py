@@ -6,7 +6,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 
-from audio.filters import FILTER_DEFS
 
 HEADER_STYLE = """
     QPushButton {
@@ -174,13 +173,14 @@ class CollapsibleFilter(QWidget):
 
 
 class FilterPanel(QWidget):
-    """Scrollable panel with master volume slider and 20 collapsible filters."""
+    """Scrollable panel with master volume slider and user-selected filters."""
 
     filter_apply = pyqtSignal(object, dict)  # fn, kwargs
     master_volume_changed = pyqtSignal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._filter_widgets: dict[str, CollapsibleFilter] = {}
         self._setup_ui()
 
     def _setup_ui(self):
@@ -227,7 +227,7 @@ class FilterPanel(QWidget):
         filt_label.setStyleSheet("color: #aaa; font-size: 12px; font-weight: bold; padding: 4px 0;")
         outer.addWidget(filt_label)
 
-        # Scrollable filter list
+        # Scrollable filter list (starts empty)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -242,19 +242,26 @@ class FilterPanel(QWidget):
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
         """)
 
-        container = QWidget()
-        container_layout = QVBoxLayout(container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.setSpacing(0)
+        self._container = QWidget()
+        self._container_layout = QVBoxLayout(self._container)
+        self._container_layout.setContentsMargins(0, 0, 0, 0)
+        self._container_layout.setSpacing(0)
+        self._container_layout.addStretch()
 
-        for label, fn, param_defs in FILTER_DEFS:
-            section = CollapsibleFilter(label, fn, param_defs)
-            section.apply_requested.connect(self._on_filter_apply)
-            container_layout.addWidget(section)
-
-        container_layout.addStretch()
-        scroll.setWidget(container)
+        scroll.setWidget(self._container)
         outer.addWidget(scroll, stretch=1)
+
+    def add_filter(self, label, fn, param_defs):
+        """Add a filter to the panel (called when user picks from menu)."""
+        if label in self._filter_widgets:
+            return  # already added
+        section = CollapsibleFilter(label, fn, param_defs)
+        section.apply_requested.connect(self._on_filter_apply)
+        # Insert before the stretch
+        self._container_layout.insertWidget(
+            self._container_layout.count() - 1, section
+        )
+        self._filter_widgets[label] = section
 
     def _on_vol_changed(self, val):
         self._vol_label.setText(f"{val}%")
