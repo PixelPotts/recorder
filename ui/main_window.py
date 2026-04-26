@@ -47,13 +47,17 @@ class MainWindow(QMainWindow):
         self._build_menus()
         self._connect_signals()
         self._start_cursor_timer()
-        self._center_on_screen()
+        self._first_show = True
+        self.resize(1200, 700)
 
-    def _center_on_screen(self):
-        screen = self.screen().availableGeometry()
-        x = (screen.width() - self.width()) // 2 + screen.x()
-        y = (screen.height() - self.height()) // 2 + screen.y()
-        self.move(x, y)
+    def showEvent(self, event):
+        super().showEvent(event)
+        if self._first_show:
+            self._first_show = False
+            screen = self.screen().availableGeometry()
+            x = (screen.width() - self.width()) // 2 + screen.x()
+            y = (screen.height() - self.height()) // 2 + screen.y()
+            self.move(x, y)
 
     # ── UI Construction ──────────────────────────────────────────────
 
