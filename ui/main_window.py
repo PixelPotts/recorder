@@ -12,6 +12,7 @@ from models.audio_document import AudioDocument
 from audio.recorder import AudioRecorder
 from audio.player import AudioPlayer
 from audio.undo_manager import UndoManager
+from audio.filters import FILTER_REGISTRY
 from ui.waveform_widget import WaveformWidget
 from ui.file_browser import FileBrowser
 from ui.effects_panel import EffectsPanel
@@ -104,6 +105,15 @@ class MainWindow(QMainWindow):
         edit_menu.addSeparator()
         self._add_action(edit_menu, "Select All", "Ctrl+A", self._on_select_all)
         self._add_action(edit_menu, "Zoom to Fit", "Ctrl+0", lambda: self.waveform.zoom_to_fit())
+
+        filter_menu = menu.addMenu("Filter")
+        for label, fn in FILTER_REGISTRY:
+            self._add_filter_action(filter_menu, label, fn)
+
+    def _add_filter_action(self, menu, label, fn):
+        action = QAction(label, self)
+        action.triggered.connect(lambda checked, f=fn: self._apply_filter(f))
+        menu.addAction(action)
 
     def _add_action(self, menu, text, shortcut, callback):
         action = QAction(text, self)
@@ -343,6 +353,22 @@ class MainWindow(QMainWindow):
         self.undo_mgr.push(self.doc.get_snapshot())
         self.doc.crop_to_selection(sel[0], sel[1])
         self.waveform.clear_selection()
+        self._refresh_waveform()
+
+    def _apply_filter(self, fn):
+        if self.doc.num_samples == 0:
+            return
+        self.undo_mgr.push(self.doc.get_snapshot())
+        sel = self.waveform.get_selection()
+        if sel[0] >= 0 and sel[1] > sel[0]:
+            # Apply to selection only
+            segment = self.doc.samples[sel[0]:sel[1]].copy()
+            filtered = fn(segment, self.doc.sample_rate)
+            self.doc.samples[sel[0]:sel[0] + len(filtered)] = filtered
+        else:
+            # Apply to entire audio
+            self.doc.samples = fn(self.doc.samples, self.doc.sample_rate)
+        self.doc.dirty = True
         self._refresh_waveform()
 
     def _on_select_all(self):
