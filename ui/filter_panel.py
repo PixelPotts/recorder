@@ -7,65 +7,86 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 
 
-HEADER_STYLE = """
+FILTER_HEADER_STYLE = """
     QPushButton {
-        background: #2a2a2a;
-        color: #bbb;
+        background: transparent;
+        color: #bec8d2;
         border: none;
-        border-bottom: 1px solid #333;
         text-align: left;
-        padding: 5px 8px;
+        padding: 6px 8px;
         font-size: 12px;
+        font-weight: bold;
     }
-    QPushButton:hover { background: #333; }
+    QPushButton:hover { color: #fff; }
+"""
+
+DOTS_BTN_STYLE = """
+    QPushButton {
+        background: transparent;
+        color: #556677;
+        border: none;
+        font-size: 16px;
+        font-weight: bold;
+        padding: 0 4px;
+    }
+    QPushButton:hover { color: #bec8d2; }
 """
 
 APPLY_STYLE = """
     QPushButton {
-        background: #264f78;
-        color: #ddd;
-        border: none;
-        border-radius: 3px;
-        padding: 3px 10px;
+        background: #0a3a3a;
+        color: #4aecd4;
+        border: 1px solid #1a5050;
+        border-radius: 4px;
+        padding: 3px 12px;
         font-size: 11px;
     }
-    QPushButton:hover { background: #2d6a9f; }
-    QPushButton:pressed { background: #1a3a5c; }
+    QPushButton:hover { background: #0f4a4a; border-color: #4aecd4; }
+    QPushButton:pressed { background: #084040; }
 """
 
 SLIDER_STYLE = """
     QSlider::groove:horizontal {
-        background: #333;
+        background: #1a3050;
         height: 4px;
         border-radius: 2px;
     }
     QSlider::handle:horizontal {
-        background: #6a9fd8;
-        width: 24px;
-        margin: -8px 0;
-        border-radius: 12px;
+        background: #00c8a0;
+        width: 14px;
+        margin: -5px 0;
+        border-radius: 7px;
     }
     QSlider::sub-page:horizontal {
-        background: #4a7aaa;
+        background: #00a088;
         border-radius: 2px;
     }
 """
 
 MASTER_SLIDER_STYLE = """
     QSlider::groove:horizontal {
-        background: #333;
-        height: 6px;
-        border-radius: 3px;
+        background: #1a3050;
+        height: 5px;
+        border-radius: 2px;
     }
     QSlider::handle:horizontal {
-        background: #e8a040;
-        width: 28px;
-        margin: -8px 0;
-        border-radius: 14px;
+        background: #00d4aa;
+        width: 16px;
+        margin: -6px 0;
+        border-radius: 8px;
     }
     QSlider::sub-page:horizontal {
-        background: #c07820;
-        border-radius: 3px;
+        background: #00b090;
+        border-radius: 2px;
+    }
+"""
+
+CARD_STYLE = """
+    QFrame {
+        background: #0f1f30;
+        border: 1px solid #1a3050;
+        border-radius: 6px;
+        margin: 3px 6px;
     }
 """
 
@@ -80,12 +101,12 @@ class ParamSlider(QWidget):
         self.step = step
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 1, 4, 1)
-        layout.setSpacing(4)
+        layout.setContentsMargins(10, 2, 8, 2)
+        layout.setSpacing(6)
 
         self._label = QLabel(label)
-        self._label.setFixedWidth(60)
-        self._label.setStyleSheet("color: #888; font-size: 11px;")
+        self._label.setFixedWidth(55)
+        self._label.setStyleSheet("color: #7a8a9a; font-size: 11px;")
         layout.addWidget(self._label)
 
         steps = int((max_val - min_val) / step)
@@ -97,9 +118,9 @@ class ParamSlider(QWidget):
         layout.addWidget(self._slider, stretch=1)
 
         self._readout = QLabel(self._fmt(default))
-        self._readout.setFixedWidth(50)
+        self._readout.setFixedWidth(45)
         self._readout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        self._readout.setStyleSheet("color: #999; font-size: 11px;")
+        self._readout.setStyleSheet("color: #8899aa; font-size: 11px;")
         layout.addWidget(self._readout)
 
     @property
@@ -116,7 +137,7 @@ class ParamSlider(QWidget):
 
 
 class CollapsibleFilter(QWidget):
-    """One collapsible filter section: header button, param sliders, apply."""
+    """One collapsible filter section in a card frame."""
 
     apply_requested = pyqtSignal(object, dict)  # fn, kwargs
 
@@ -129,15 +150,35 @@ class CollapsibleFilter(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        self._header = QPushButton(f"  {label}")
-        self._header.setStyleSheet(HEADER_STYLE)
+        # Card frame
+        self._card = QFrame()
+        self._card.setStyleSheet(CARD_STYLE)
+        card_layout = QVBoxLayout(self._card)
+        card_layout.setContentsMargins(0, 0, 0, 0)
+        card_layout.setSpacing(0)
+
+        # Header row: arrow + label + dots menu
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
+        header_row.setSpacing(0)
+
+        self._header = QPushButton(f"\u2304  {label}")
+        self._header.setStyleSheet(FILTER_HEADER_STYLE)
         self._header.setCursor(Qt.CursorShape.PointingHandCursor)
         self._header.clicked.connect(self._toggle)
-        layout.addWidget(self._header)
+        header_row.addWidget(self._header, stretch=1)
 
+        self._dots_btn = QPushButton("\u22ee")
+        self._dots_btn.setFixedSize(24, 24)
+        self._dots_btn.setStyleSheet(DOTS_BTN_STYLE)
+        header_row.addWidget(self._dots_btn)
+
+        card_layout.addLayout(header_row)
+
+        # Body with sliders
         self._body = QWidget()
         body_layout = QVBoxLayout(self._body)
-        body_layout.setContentsMargins(0, 2, 0, 4)
+        body_layout.setContentsMargins(0, 2, 0, 6)
         body_layout.setSpacing(2)
 
         self._sliders: dict[str, ParamSlider] = {}
@@ -147,7 +188,7 @@ class CollapsibleFilter(QWidget):
             self._sliders[kwarg] = ps
 
         btn_row = QHBoxLayout()
-        btn_row.setContentsMargins(12, 2, 4, 2)
+        btn_row.setContentsMargins(10, 4, 8, 2)
         btn_row.addStretch()
         self._apply_btn = QPushButton("Apply")
         self._apply_btn.setStyleSheet(APPLY_STYLE)
@@ -156,16 +197,22 @@ class CollapsibleFilter(QWidget):
         btn_row.addWidget(self._apply_btn)
         body_layout.addLayout(btn_row)
 
-        layout.addWidget(self._body)
+        card_layout.addWidget(self._body)
         self._body.setVisible(False)
         self._expanded = False
+
+        layout.addWidget(self._card)
 
     def _toggle(self):
         self._expanded = not self._expanded
         self._body.setVisible(self._expanded)
-        arrow = "v" if self._expanded else ">"
-        text = self._header.text().lstrip(" >v")
-        self._header.setText(f" {arrow} {text}")
+        arrow = "\u2304" if self._expanded else "\u203a"
+        text = self._header.text()
+        # Strip old arrow
+        for ch in ("\u2304", "\u203a"):
+            text = text.replace(ch, "")
+        text = text.strip()
+        self._header.setText(f"{arrow}  {text}")
 
     def _on_apply(self):
         kwargs = {k: s.value for k, s in self._sliders.items()}
@@ -191,15 +238,17 @@ class FilterPanel(QWidget):
         # Master volume
         vol_frame = QWidget()
         vol_layout = QVBoxLayout(vol_frame)
-        vol_layout.setContentsMargins(8, 6, 8, 6)
-        vol_layout.setSpacing(2)
+        vol_layout.setContentsMargins(8, 8, 8, 6)
+        vol_layout.setSpacing(4)
 
-        vol_header = QLabel("Mix Volume")
-        vol_header.setStyleSheet("color: #ccc; font-size: 12px; font-weight: bold;")
+        vol_header = QLabel("MIX VOLUME")
+        vol_header.setStyleSheet(
+            "color: #8899aa; font-size: 11px; font-weight: bold; letter-spacing: 1px;"
+        )
         vol_layout.addWidget(vol_header)
 
         slider_row = QHBoxLayout()
-        slider_row.setSpacing(6)
+        slider_row.setSpacing(8)
         self._vol_slider = QSlider(Qt.Orientation.Horizontal)
         self._vol_slider.setRange(0, 150)
         self._vol_slider.setValue(100)
@@ -210,7 +259,7 @@ class FilterPanel(QWidget):
         self._vol_label = QLabel("100%")
         self._vol_label.setFixedWidth(40)
         self._vol_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        self._vol_label.setStyleSheet("color: #e8a040; font-size: 12px; font-weight: bold;")
+        self._vol_label.setStyleSheet("color: #bec8d2; font-size: 12px; font-weight: bold;")
         slider_row.addWidget(self._vol_label)
         vol_layout.addLayout(slider_row)
 
@@ -219,12 +268,15 @@ class FilterPanel(QWidget):
         # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #333;")
+        sep.setStyleSheet("color: #1a3050;")
         outer.addWidget(sep)
 
         # Filter header
-        filt_label = QLabel("  Filters")
-        filt_label.setStyleSheet("color: #aaa; font-size: 12px; font-weight: bold; padding: 4px 0;")
+        filt_label = QLabel("  FILTERS")
+        filt_label.setStyleSheet(
+            "color: #8899aa; font-size: 11px; font-weight: bold; "
+            "letter-spacing: 1px; padding: 6px 0 2px 0;"
+        )
         outer.addWidget(filt_label)
 
         # Scrollable filter list (starts empty)
@@ -232,12 +284,12 @@ class FilterPanel(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet("""
-            QScrollArea { border: none; background: #1a1a1a; }
+            QScrollArea { border: none; background: #0d1b2a; }
             QScrollBar:vertical {
-                background: #1a1a1a; width: 8px;
+                background: #0d1b2a; width: 6px;
             }
             QScrollBar::handle:vertical {
-                background: #444; border-radius: 4px; min-height: 20px;
+                background: #1a3050; border-radius: 3px; min-height: 20px;
             }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
         """)
