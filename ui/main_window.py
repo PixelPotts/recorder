@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QFileDialog, QMessageBox, QSplitter, QPushButton, QLabel,
 )
-from PyQt6.QtCore import Qt, QTimer, QPoint
+from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent
 from PyQt6.QtGui import QAction, QKeySequence
 
 from models.audio_document import AudioDocument
@@ -99,6 +99,10 @@ class MainWindow(QMainWindow):
         btn_close.setStyleSheet(close_btn_style)
         btn_close.clicked.connect(self.close)
         tb_layout.addWidget(btn_close)
+
+        # Install event filter for title bar dragging
+        self._title_bar.installEventFilter(self)
+        self._title_label.installEventFilter(self)
 
         outer_layout.addWidget(self._title_bar)
 
@@ -252,31 +256,30 @@ class MainWindow(QMainWindow):
         else:
             self.showMaximized()
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            # Only drag if clicking on the title bar area
-            if self._title_bar.geometry().contains(event.pos()):
+    def eventFilter(self, obj, event):
+        if obj in (self._title_bar, self._title_label):
+            if event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
                 self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-                event.accept()
-            else:
-                super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if self._drag_pos is not None and event.buttons() & Qt.MouseButton.LeftButton:
-            self.move(event.globalPosition().toPoint() - self._drag_pos)
-            event.accept()
-        else:
-            super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        self._drag_pos = None
-        super().mouseReleaseEvent(event)
-
-    def mouseDoubleClickEvent(self, event):
-        if self._title_bar.geometry().contains(event.pos()):
-            self._toggle_maximize()
-        else:
-            super().mouseDoubleClickEvent(event)
+                return True
+            elif event.type() == QEvent.Type.MouseMove and self._drag_pos is not None:
+                if self.isMaximized():
+                    # Restore from maximized and reposition so cursor stays on bar
+                    ratio = event.globalPosition().x() / self.width()
+                    self.showNormal()
+                    new_x = event.globalPosition().toPoint().x() - int(self.width() * ratio)
+                    new_y = event.globalPosition().toPoint().y() - 16
+                    self.move(new_x, new_y)
+                    self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                else:
+                    self.move(event.globalPosition().toPoint() - self._drag_pos)
+                return True
+            elif event.type() == QEvent.Type.MouseButtonRelease:
+                self._drag_pos = None
+                return True
+            elif event.type() == QEvent.Type.MouseButtonDblClick:
+                self._toggle_maximize()
+                return True
+        return super().eventFilter(obj, event)
 
     # ── Key Events ───────────────────────────────────────────────────
 
